@@ -1,26 +1,7 @@
+// app/(tabs)/home/index.tsx
 import React from "react";
-import { StyleSheet } from "react-native";
-
-import { useT } from "@i18n/useT";
-import ThemedText from "@themedComponents/ThemedText";
-import ThemedView from "@themedComponents/ThemedView";
+import { MapView } from "@maplibre/maplibre-react-native";
 
 export default function index() {
-  const t = useT();
-
-  return (
-    <ThemedView style={styles.container}>
-      <ThemedText>
-        {t("home.title")}
-      </ThemedText>
-    </ThemedView>
-  );
+  return <MapView style={{ flex: 1 }} />;
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-});
