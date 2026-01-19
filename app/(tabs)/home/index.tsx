@@ -1,22 +1,38 @@
 // app/(tabs)/home/index.tsx
 import React from "react";
-import MatesMap from "@components/matesMap/MatesMap";
+import MatesMap from "@components/matesMap";
+import { activitiesToFeatureCollection, generateActivities } from "utils/activity.utils";
 
-import type { MapPoint } from "types/map";
+import MarkerRed from "@assetsMap/marker-red.png";
+import MarkerGreen from "@assetsMap/marker-green.png";
+import MarkerBlue from "@assetsMap/marker-blue.png";
 
-const points: MapPoint[] = Array.from({ length: 300 }).map((_, i) => ({
-  id: `activity-${i}`,
-  latitude: 48.85 + Math.random() * 0.2 - 0.1,
-  longitude: 2.35 + Math.random() * 0.2 - 0.1,
-  sport: i % 3 === 0 ? "running" : i % 3 === 1 ? "cycling" : "swimming",
-  level:
-    i % 3 === 0
-      ? "beginner"
-      : i % 3 === 1
-      ? "intermediate"
-      : "advanced",
-}));
+const activities = generateActivities(1000, { lat: 48.8566, lng: 2.3522 }, 0.4);
 
-export default function index() {
-  return <MatesMap points={points} />
+export default function Home() {
+  return (
+    <MatesMap
+      data={activities}
+      toFeatureCollection={activitiesToFeatureCollection}
+      startupLocation={{
+        location: {
+          lat: 48.8566,
+          lng: 2.3522,
+        },
+        zoom: 11,
+      }}
+      icons={{
+        property: "sport",
+        images: {
+          running: MarkerRed,
+          cycling: MarkerGreen,
+          swimming: MarkerBlue,
+          trail: MarkerGreen,
+        },
+        style: {
+          iconSize: 0.9,
+        },
+      }}
+    />
+  );
 }

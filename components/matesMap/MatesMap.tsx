@@ -6,62 +6,67 @@ import {
   SymbolLayer,
   CircleLayer,
   Images,
+  Camera,
 } from "@maplibre/maplibre-react-native";
 import { StyleSheet } from "react-native";
 import type { FeatureCollection } from "geojson";
-import type { MapPoint } from "types/map";
 
-import MarkerRedIcon from "@assetsMap/marker-red.png";
-import MarkerGreenIcon from "@assetsMap/marker-green.png";
-import MarkerBlueIcon from "@assetsMap/marker-blue.png";
+import { ClusterStyleConfig, IconConfig, RawData, StartupLocation, ToFeatureCollection } from "./map.types";
+import {
+  defaultClusterCircle,
+  defaultClusterText,
+  defaultSymbolStyle,
+} from "./defaultStyles";
 
-interface MatesMapProps {
-  points?: MapPoint[];
+export interface MatesMapProps<T = RawData> {
+  /** Option 1 : données déjà prêtes */
+  featureCollection?: FeatureCollection;
+  /** Option 2 : données + callback */
+  data?: T[];
+  toFeatureCollection?: ToFeatureCollection<T>;
+
   mapStyle?: string;
+  startupLocation?: StartupLocation;
+  icons?: IconConfig;
+  clusters?: ClusterStyleConfig;
 }
 
-export default function MatesMap({
-  points = [],
+export default function MatesMap<T>({
+  featureCollection,
+  data = [],
+  toFeatureCollection,
   mapStyle = "https://tiles.openfreemap.org/styles/liberty",
-}: MatesMapProps) {
-  // Conversion métier -> GeoJSON
-  const geojson: FeatureCollection = useMemo(
-    () => ({
-      type: "FeatureCollection",
-      features: points.map((p) => ({
-        type: "Feature",
-        geometry: {
-          type: "Point",
-          coordinates: [p.longitude, p.latitude],
-        },
-        properties: {
-          id: p.id,
-          sport: p.sport,
-          level: p.level,
-        },
-      })),
-    }),
-    [points]
-  );
+  startupLocation,
+  icons,
+  clusters,
+}: MatesMapProps<T>) {
+  const geojson: FeatureCollection | undefined = useMemo(() => {
+    if (featureCollection) return featureCollection;
+    if (data.length && toFeatureCollection)
+      return toFeatureCollection(data);
+    return undefined;
+  }, [featureCollection, data, toFeatureCollection]);
+
+  if (!geojson) return null;
 
   return (
-    <MapView 
-      style={styles.map} 
-      mapStyle={mapStyle}
-    >
-      {/* Icônes disponibles pour les layers */}
-      <Images 
-        images={{
-          running: MarkerRedIcon,
-          cycling: MarkerGreenIcon,
-          swimming: MarkerBlueIcon,
-        }}
-      />
+    <MapView style={styles.map} mapStyle={mapStyle}>
+      {startupLocation && (
+        <Camera
+          zoomLevel={startupLocation.zoom ?? 10}
+          centerCoordinate={[
+            startupLocation.location.lng,
+            startupLocation.location.lat,
+          ]}
+        />
+      )}
+
+      {icons && <Images images={icons.images} />}
 
       <ShapeSource
-        id="activities"
+        id="source"
         shape={geojson}
-        cluster={true}
+        cluster
         clusterRadius={50}
         clusterMaxZoomLevel={14}
       >
@@ -70,62 +75,37 @@ export default function MatesMap({
           id="clusters"
           filter={["has", "point_count"]}
           style={{
-            circleColor: "#4CAF50",
-            circleRadius: [
-              "step",
-              ["get", "point_count"],
-              18,
-              10,
-              24,
-              30,
-              30,
-            ],
-            circleOpacity: 0.85,
+            ...defaultClusterCircle,
+            ...clusters?.circle,
           }}
         />
 
-        {/* Nombre dans cluster */}
         <SymbolLayer
           id="cluster-count"
           filter={["has", "point_count"]}
           style={{
-            textField: ["get", "point_count_abbreviated"],
-            textSize: 14,
-            textColor: "#FFFFFF",
-            textAllowOverlap: true,
-            textFont: ["Noto Sans Regular"],
+            ...defaultClusterText,
+            ...clusters?.countText,
           }}
         />
 
-        {/* Markers individuels */}
-        <SymbolLayer
-          id="activity-markers"
-          filter={["!", ["has", "point_count"]]}
-          style={{
-            iconImage: ["get", "sport"],
-            iconSize: 0.05,
-            iconAllowOverlap: true,
-            iconColor: [
-              "match",
-              ["get", "level"],
-              "beginner",
-              "#4CAF50",
-              "intermediate",
-              "#FFC107",
-              "advanced",
-              "#F44336",
-              "#000000",
-            ],
-            textFont: ["Noto Sans Regular"],
-          }}
-        />
+        {/* Points */}
+        {icons && (
+          <SymbolLayer
+            id="markers"
+            filter={["!", ["has", "point_count"]]}
+            style={{
+              ...defaultSymbolStyle,
+              ...icons.style,
+              iconImage: ["get", icons.property],
+            }}
+          />
+        )}
       </ShapeSource>
     </MapView>
   );
 }
 
 const styles = StyleSheet.create({
-  map: {
-    flex: 1,
-  },
+  map: { flex: 1 },
 });
