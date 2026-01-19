@@ -16,7 +16,7 @@
     "ios": {
       "supportsTablet": true,
       "buildNumber": "1.0.0",
-      "bundleIdentifier": "com.mates.mates-map"
+      "bundleIdentifier": "com.mates.matesmap"
     },
     "android": {
       "versionCode": 1,
