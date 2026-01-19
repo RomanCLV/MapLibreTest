@@ -2,16 +2,16 @@
 import React from "react";
 import { Slot } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { ThemeProvider, useAppTheme } from "@context/ThemeContext";
+import { ThemeProvider } from "@context/ThemeContext";
 import { LanguageProvider } from "@context/LanguageContext";
+import { useTheme } from "@hooks/useTheme";
 
 const RootLayoutContent = () => {
-  const { theme } = useAppTheme();
-
+  const theme = useTheme();
   return (
     <>
       <StatusBar style={theme.isDark ? "light" : "dark"} />
-      <Slot /> 
+      <Slot />
     </>
   );
 };

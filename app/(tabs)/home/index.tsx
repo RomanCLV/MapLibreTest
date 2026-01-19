@@ -1,7 +1,7 @@
 // app/(tabs)/home/index.tsx
 import React from "react";
-import { MapView } from "@maplibre/maplibre-react-native";
+import MatesMap from "@components/matesMap/MatesMap";
 
 export default function index() {
-  return <MapView style={{ flex: 1 }} />;
+  return <MatesMap />
 }
