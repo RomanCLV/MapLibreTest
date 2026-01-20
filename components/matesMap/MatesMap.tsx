@@ -1,6 +1,8 @@
-// components/matesMap/MatesMap.tsx
 import React, {
   useMemo,
+  useRef,
+  useImperativeHandle,
+  forwardRef,
 } from "react";
 import { StyleSheet } from "react-native";
 import {
@@ -11,7 +13,11 @@ import {
   Images,
   Camera,
   OnPressEvent,
+  CameraRef,
+  CameraStop
 } from "@maplibre/maplibre-react-native";
+import { CameraStops } from "node_modules/@maplibre/maplibre-react-native/lib/typescript/module/src/components/Camera";
+
 import type { Feature, FeatureCollection } from "geojson";
 
 import {
@@ -19,18 +25,26 @@ import {
   IconConfig,
   StartupLocation,
   ToFeatureCollection,
+  FocusOptions,
 } from "./map.types";
+
 import {
   defaultClusterCircle,
   defaultClusterText,
   defaultSymbolStyle,
 } from "./defaultStyles";
 
-export interface FocusOptions {
-  lat: number;
-  lng: number;
-  minZoom?: number;
-  animationDuration?: number;
+export interface MatesMapHandle {
+  // Méthodes custom
+  focusOn: (options: FocusOptions) => void;
+  resetCamera: () => void;
+
+  // Méthodes CameraRef wrappées
+  setCamera: (config: CameraStop | CameraStops) => void;
+  fitBounds: (ne: GeoJSON.Position, sw: GeoJSON.Position, paddingConfig?: number | number[], animationDuration?: number) => void;
+  flyTo: (coordinates: GeoJSON.Position, animationDuration?: number) => void;
+  moveTo: (coordinates: GeoJSON.Position, animationDuration?: number) => void;
+  zoomTo: (zoomLevel: number, animationDuration?: number) => void;
 }
 
 export interface MatesMapProps<T = any> {
@@ -53,58 +67,100 @@ export interface MatesMapProps<T = any> {
   Component
 ========================= */
 
-function MatesMap({
-    featureCollection,
-    data = [],
-    toFeatureCollection,
-    mapStyle = "https://tiles.openfreemap.org/styles/liberty",
-    startupLocation,
-    icons,
-    clusters,
-    onPressFeature,
-    onPressCluster,
-  }: MatesMapProps) {
+const MatesMap = forwardRef<MatesMapHandle, MatesMapProps>(
+  (
+    {
+      featureCollection,
+      data = [],
+      toFeatureCollection,
+      mapStyle = "https://tiles.openfreemap.org/styles/liberty",
+      startupLocation,
+      icons,
+      clusters,
+      onPressFeature,
+      onPressCluster,
+    },
+    ref
+  ) => {
+    const cameraRef = useRef<CameraRef>(null);
 
     const geojson: FeatureCollection | undefined = useMemo(() => {
-      if (featureCollection) 
-        return featureCollection;
-      
+      if (featureCollection) return featureCollection;
+
       if (data.length && toFeatureCollection)
         return toFeatureCollection(data);
 
-      return undefined; // Retourner une FeatureCollection vide si aucune donnée n'est fournie plutot que undefined
+      return undefined;
     }, [featureCollection, data, toFeatureCollection]);
+
+    // Exposition des méthodes via useImperativeHandle
+    useImperativeHandle(ref, () => ({
+      // Méthodes custom
+      focusOn: ({ lat, lng, minZoom = 13, animationDuration = 1000 }) => {
+        cameraRef.current?.setCamera({
+          centerCoordinate: [lng, lat],
+          zoomLevel: minZoom,
+          animationDuration,
+        });
+      },
+      resetCamera: () => {
+        if (startupLocation) {
+          cameraRef.current?.setCamera({
+            centerCoordinate: [
+              startupLocation.location.lng,
+              startupLocation.location.lat,
+            ],
+            zoomLevel: startupLocation.zoom ?? 10,
+            animationDuration: 1000,
+          });
+        }
+      },
+      // Méthodes CameraRef wrappées
+      setCamera: (config) => {
+        cameraRef.current?.setCamera(config);
+      },
+      fitBounds: (ne, sw, paddingConfig, animationDuration) => {
+        cameraRef.current?.fitBounds(ne, sw, paddingConfig, animationDuration);
+      },
+      flyTo: (coordinates, animationDuration) => {
+        cameraRef.current?.flyTo(coordinates, animationDuration);
+      },
+      moveTo: (coordinates, animationDuration) => {
+        cameraRef.current?.moveTo(coordinates, animationDuration);
+      },
+      zoomTo: (zoomLevel, animationDuration) => {
+        cameraRef.current?.zoomTo(zoomLevel, animationDuration);
+      },
+    }));
 
     const onShapePressed = (event: OnPressEvent) => {
       const feature = event.features?.[0];
-      if (!feature) 
-        return;
+      if (!feature) return;
 
       const isCluster = feature.properties?.point_count != null;
       if (isCluster) {
         onPressCluster?.(feature);
-      }
-      else {
+      } else {
         onPressFeature?.(feature);
       }
     };
 
     return (
-      <MapView
-        style={styles.map}
-        mapStyle={mapStyle}
-      >
-        {startupLocation && (
-          <Camera
-            defaultSettings={{
-              zoomLevel: startupLocation.zoom ?? 10,
-              centerCoordinate: [
-                startupLocation.location.lng,
-                startupLocation.location.lat,
-              ],
-            }}
-          />
-        )}
+      <MapView style={styles.map} mapStyle={mapStyle}>
+        <Camera
+          ref={cameraRef}
+          defaultSettings={
+            startupLocation
+              ? {
+                  zoomLevel: startupLocation.zoom ?? 10,
+                  centerCoordinate: [
+                    startupLocation.location.lng,
+                    startupLocation.location.lat,
+                  ],
+                }
+              : undefined
+          }
+        />
 
         {icons && <Images images={icons.images} />}
 
@@ -149,6 +205,9 @@ function MatesMap({
       </MapView>
     );
   }
+);
+
+MatesMap.displayName = "MatesMap";
 
 export default MatesMap;
 

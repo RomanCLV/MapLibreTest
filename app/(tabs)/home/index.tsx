@@ -1,6 +1,6 @@
 // app/home/index.tsx
-import React, { useMemo, useState } from "react";
-import MatesMap from "@components/matesMap";
+import React, { useMemo, useRef, useState } from "react";
+import MatesMap, { MapLocation, MatesMapHandle } from "@components/matesMap";
 import { activitiesToFeatureCollection, generateActivities } from "utils/activity.utils";
 
 import MarkerRed from "@assetsMap/marker-red.png";
@@ -12,13 +12,16 @@ import ThemedBottomSheetModal from "@components/themedComponents/ThemedBottomShe
 import { CardActivity } from "@components/map/CardActivity";
 import { useT } from "@i18n/useT";
 
+const PARIS_COORDINATES: MapLocation = { lat: 48.8566, lng: 2.3522 };
+
 const activities = generateActivities(
   1000,
-  { lat: 48.8566, lng: 2.3522 },
+  PARIS_COORDINATES,
   0.4
 );
 
 export default function Home() {
+  const mapRef = useRef<MatesMapHandle>(null);
   const t = useT();
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
 
@@ -34,9 +37,13 @@ export default function Home() {
     if (!activity) 
       return;
 
-    const lat = activity.location.lat;
-    const lng = activity.location.lng;
-    const minZoom =  13;
+    // Centrer la caméra sur l'activité
+    mapRef.current?.focusOn({
+      lat: activity.location.lat,
+      lng: activity.location.lng,
+      minZoom: 13,
+      animationDuration: 500,
+    });
 
     setSelectedActivity(activity);
   };
@@ -46,10 +53,11 @@ export default function Home() {
   return (
     <ThemedView style={{ flex: 1 }}>
       <MatesMap
+        ref={mapRef}
         data={activities}
         toFeatureCollection={activitiesToFeatureCollection}
         startupLocation={{
-          location: { lat: 48.8566, lng: 2.3522 },
+          location: PARIS_COORDINATES,
           zoom: 11,
         }}
         icons={{

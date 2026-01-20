@@ -12,6 +12,7 @@ export interface MapLocation {
 
 export interface FocusOptions extends MapLocation {
   minZoom?: number;
+  animationDuration?: number;
 }
 
 export interface StartupLocation {
