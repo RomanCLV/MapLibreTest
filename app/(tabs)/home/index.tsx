@@ -1,4 +1,5 @@
-import React, { useMemo, useRef, useState } from "react";
+// app/home/index.tsx
+import React, { useMemo, useState } from "react";
 import MatesMap from "@components/matesMap";
 import { activitiesToFeatureCollection, generateActivities } from "utils/activity.utils";
 

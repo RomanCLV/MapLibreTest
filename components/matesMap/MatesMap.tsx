@@ -1,3 +1,4 @@
+// components/matesMap/MatesMap.tsx
 import React, {
   useMemo,
 } from "react";
