@@ -49,7 +49,6 @@ export default function ThemedBottomSheetModal({
   const theme = useTheme();
   const translateY = useRef(new Animated.Value(height)).current;
   const canConfirm = header?.canConfirm ?? true;
-  const t = useT();
 
   useEffect(() => {
     if (visible) {
@@ -118,7 +117,7 @@ export default function ThemedBottomSheetModal({
 
               <View style={{flex: 1, flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 16 }}>
                 <ThemedButton variant="ghost" onPress={header.onCancel}>
-                  {header.cancelText ?? t("global.cancel")}
+                  {header.cancelText ?? "Close"}
                 </ThemedButton>
 
                 <ThemedButton
@@ -132,7 +131,7 @@ export default function ThemedBottomSheetModal({
                       fontWeight: "600",
                     }}
                   >
-                    {header.confirmText ?? t("global.ok")}
+                    {header.confirmText ?? "OK"}
                   </ThemedText>
                 </ThemedButton>
               </View>

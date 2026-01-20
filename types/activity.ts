@@ -1,3 +1,5 @@
+import { MapLocation } from "@components/matesMap";
+
 export const SPORT_TYPES = [
   "running",
   "cycling",
@@ -12,6 +14,5 @@ export interface Activity {
   name: string;
   description: string;
   sport: SportType;
-  lat: number;
-  lng: number;
+  location: MapLocation;
 }

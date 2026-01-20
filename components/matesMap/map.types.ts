@@ -1,5 +1,4 @@
 // components/matesMap/map.types.ts
-// components/matesMap/matesMap.types.ts
 import type { FeatureCollection } from "geojson";
 import type {
   CircleLayerStyle,
@@ -11,20 +10,19 @@ export interface MapLocation {
   lng: number;
 }
 
+export interface FocusOptions extends MapLocation {
+  minZoom?: number;
+}
+
 export interface StartupLocation {
   location: MapLocation;
   zoom?: number;
 }
 
 /**
- * Données brutes quelconques
- */
-export type RawData = unknown;
-
-/**
  * Callback de transformation
  */
-export type ToFeatureCollection<T = RawData> = (data: T[]) => FeatureCollection;
+export interface ToFeatureCollection<T> { (data: T[]): FeatureCollection; }
 
 /**
  * Configuration des icônes
@@ -46,6 +44,12 @@ export interface IconConfig {
    * Style du SymbolLayer (iconSize, overlap, etc.)
    */
   style?: SymbolLayerStyle;
+}
+
+export interface ClusterConfig {
+  radius?: number;
+  maxZoom?: number;
+  styles?: ClusterStyleConfig;
 }
 
 /**

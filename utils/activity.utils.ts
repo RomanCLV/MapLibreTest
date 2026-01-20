@@ -9,7 +9,7 @@ export function activitiesToFeatureCollection(list: Activity[]): FeatureCollecti
       type: "Feature",
       geometry: {
         type: "Point",
-        coordinates: [item.lng, item.lat],
+        coordinates: [item.location.lng, item.location.lat],
       },
       properties: {
         id: item.id,
@@ -32,7 +32,9 @@ export function generateActivities(
     name: `Sortie ${sports[i % sports.length]}`,
     description: "Sortie sportive conviviale",
     sport: sports[i % sports.length],
-    lat: center.lat + (Math.random() - 0.5) * amplitude,
-    lng: center.lng + (Math.random() - 0.5) * amplitude,
+    location: {
+      lat: center.lat + (Math.random() - 0.5) * amplitude,
+      lng: center.lng + (Math.random() - 0.5) * amplitude,
+    }
   }));
 }

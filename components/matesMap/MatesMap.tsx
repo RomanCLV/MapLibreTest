@@ -1,5 +1,7 @@
-// components/matesMap/MatesMap.tsx
-import React, { useMemo } from "react";
+import React, {
+  useMemo,
+} from "react";
+import { StyleSheet } from "react-native";
 import {
   MapView,
   ShapeSource,
@@ -7,104 +9,147 @@ import {
   CircleLayer,
   Images,
   Camera,
+  OnPressEvent,
 } from "@maplibre/maplibre-react-native";
-import { StyleSheet } from "react-native";
-import type { FeatureCollection } from "geojson";
+import type { Feature, FeatureCollection } from "geojson";
 
-import { ClusterStyleConfig, IconConfig, RawData, StartupLocation, ToFeatureCollection } from "./map.types";
+import {
+  ClusterConfig,
+  IconConfig,
+  StartupLocation,
+  ToFeatureCollection,
+} from "./map.types";
 import {
   defaultClusterCircle,
   defaultClusterText,
   defaultSymbolStyle,
 } from "./defaultStyles";
 
-export interface MatesMapProps<T = RawData> {
-  /** Option 1 : données déjà prêtes */
+export interface FocusOptions {
+  lat: number;
+  lng: number;
+  minZoom?: number;
+  animationDuration?: number;
+}
+
+export interface MatesMapProps<T = any> {
   featureCollection?: FeatureCollection;
-  /** Option 2 : données + callback */
+
+  /** données brutes + callback */
   data?: T[];
   toFeatureCollection?: ToFeatureCollection<T>;
 
   mapStyle?: string;
   startupLocation?: StartupLocation;
   icons?: IconConfig;
-  clusters?: ClusterStyleConfig;
+  clusters?: ClusterConfig;
+
+  onPressFeature?: (feature: Feature) => void;
+  onPressCluster?: (cluster: Feature) => void;
 }
 
-export default function MatesMap<T>({
-  featureCollection,
-  data = [],
-  toFeatureCollection,
-  mapStyle = "https://tiles.openfreemap.org/styles/liberty",
-  startupLocation,
-  icons,
-  clusters,
-}: MatesMapProps<T>) {
-  const geojson: FeatureCollection | undefined = useMemo(() => {
-    if (featureCollection) return featureCollection;
-    if (data.length && toFeatureCollection)
-      return toFeatureCollection(data);
-    return undefined;
-  }, [featureCollection, data, toFeatureCollection]);
+/* =========================
+  Component
+========================= */
 
-  if (!geojson) return null;
+function MatesMap({
+    featureCollection,
+    data = [],
+    toFeatureCollection,
+    mapStyle = "https://tiles.openfreemap.org/styles/liberty",
+    startupLocation,
+    icons,
+    clusters,
+    onPressFeature,
+    onPressCluster,
+  }: MatesMapProps) {
 
-  return (
-    <MapView style={styles.map} mapStyle={mapStyle}>
-      {startupLocation && (
-        <Camera
-          zoomLevel={startupLocation.zoom ?? 10}
-          centerCoordinate={[
-            startupLocation.location.lng,
-            startupLocation.location.lat,
-          ]}
-        />
-      )}
+    const geojson: FeatureCollection | undefined = useMemo(() => {
+      if (featureCollection) 
+        return featureCollection;
+      
+      if (data.length && toFeatureCollection)
+        return toFeatureCollection(data);
 
-      {icons && <Images images={icons.images} />}
+      return undefined; // Retourner une FeatureCollection vide si aucune donnée n'est fournie plutot que undefined
+    }, [featureCollection, data, toFeatureCollection]);
 
-      <ShapeSource
-        id="source"
-        shape={geojson}
-        cluster
-        clusterRadius={50}
-        clusterMaxZoomLevel={14}
+    const onShapePressed = (event: OnPressEvent) => {
+      const feature = event.features?.[0];
+      if (!feature) 
+        return;
+
+      const isCluster = feature.properties?.point_count != null;
+      if (isCluster) {
+        onPressCluster?.(feature);
+      }
+      else {
+        onPressFeature?.(feature);
+      }
+    };
+
+    return (
+      <MapView
+        style={styles.map}
+        mapStyle={mapStyle}
       >
-        {/* Clusters */}
-        <CircleLayer
-          id="clusters"
-          filter={["has", "point_count"]}
-          style={{
-            ...defaultClusterCircle,
-            ...clusters?.circle,
-          }}
-        />
-
-        <SymbolLayer
-          id="cluster-count"
-          filter={["has", "point_count"]}
-          style={{
-            ...defaultClusterText,
-            ...clusters?.countText,
-          }}
-        />
-
-        {/* Points */}
-        {icons && (
-          <SymbolLayer
-            id="markers"
-            filter={["!", ["has", "point_count"]]}
-            style={{
-              ...defaultSymbolStyle,
-              ...icons.style,
-              iconImage: ["get", icons.property],
+        {startupLocation && (
+          <Camera
+            defaultSettings={{
+              zoomLevel: startupLocation.zoom ?? 10,
+              centerCoordinate: [
+                startupLocation.location.lng,
+                startupLocation.location.lat,
+              ],
             }}
           />
         )}
-      </ShapeSource>
-    </MapView>
-  );
-}
+
+        {icons && <Images images={icons.images} />}
+
+        <ShapeSource
+          id="source"
+          shape={geojson}
+          cluster
+          clusterRadius={clusters?.radius ?? 50}
+          clusterMaxZoomLevel={clusters?.maxZoom ?? 14}
+          onPress={onShapePressed}
+        >
+          <CircleLayer
+            id="clusters"
+            filter={["has", "point_count"]}
+            style={{
+              ...defaultClusterCircle,
+              ...clusters?.styles?.circle,
+            }}
+          />
+
+          <SymbolLayer
+            id="cluster-count"
+            filter={["has", "point_count"]}
+            style={{
+              ...defaultClusterText,
+              ...clusters?.styles?.countText,
+            }}
+          />
+
+          {icons && (
+            <SymbolLayer
+              id="markers"
+              filter={["!", ["has", "point_count"]]}
+              style={{
+                ...defaultSymbolStyle,
+                ...icons.style,
+                iconImage: ["get", icons.property],
+              }}
+            />
+          )}
+        </ShapeSource>
+      </MapView>
+    );
+  }
+
+export default MatesMap;
 
 const styles = StyleSheet.create({
   map: { flex: 1 },
