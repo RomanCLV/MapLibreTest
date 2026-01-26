@@ -3,7 +3,8 @@ import React, { useMemo, useRef, useState } from "react";
 import MatesMap, { MapLocation, MatesMapRef } from "@components/matesMap";
 import { activitiesToFeatureCollection, generateActivities } from "utils/activity.utils";
 
-import matesMapStyle from "@assetsMap/styles/matesMapStyle.json";
+import matesMapLightStyle from "@assetsMap/styles/matesMapLightStyle.json";
+import matesMapDarkStyle from "@assetsMap/styles/matesMapDarkStyle.json";
 import MarkerRed from "@assetsMap/icons/marker-red.png";
 import MarkerGreen from "@assetsMap/icons/marker-green.png";
 import MarkerBlue from "@assetsMap/icons/marker-blue.png";
@@ -12,6 +13,7 @@ import ThemedView from "@components/themedComponents/ThemedView";
 import ThemedBottomSheetModal from "@components/themedComponents/ThemedBottomSheetModal";
 import { CardActivity } from "@components/map/CardActivity";
 import { useT } from "@i18n/useT";
+import { useTheme } from "@hooks/useTheme";
 
 const PARIS_COORDINATES: MapLocation = { lat: 48.8566, lng: 2.3522 };
 
@@ -25,6 +27,7 @@ export default function Home() {
   const mapRef = useRef<MatesMapRef>(null);
   const t = useT();
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
+  const theme = useTheme();
 
   const activityById = useMemo(() => {
     return Object.fromEntries(activities.map((a) => [a.id, a]));
@@ -58,7 +61,7 @@ export default function Home() {
         ref={mapRef}
         data={activities}
         toFeatureCollection={activitiesToFeatureCollection}
-        mapStyle={matesMapStyle}
+        mapStyle={theme.isDark ? matesMapDarkStyle : matesMapLightStyle}
         startupLocation={{
           location: PARIS_COORDINATES,
           zoom: 11,
