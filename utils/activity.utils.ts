@@ -2,7 +2,12 @@ import { Activity, SPORT_TYPES, SportType } from "types/activity";
 import type { FeatureCollection, Point } from "geojson";
 import { MapLocation } from "@components/matesMap";
 
-export function activitiesToFeatureCollection(list: Activity[]): FeatureCollection<Point, { id: string; sport: SportType }> {
+export interface ActivityFeatureProperties {
+  id: string,
+  sport: SportType,
+}
+
+export function activitiesToFeatureCollection(list: Activity[]): FeatureCollection<Point, ActivityFeatureProperties> {
   return {
     type: "FeatureCollection",
     features: list.map((item) => ({

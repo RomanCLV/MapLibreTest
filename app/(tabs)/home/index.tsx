@@ -1,6 +1,6 @@
 // app/home/index.tsx
 import React, { useMemo, useRef, useState } from "react";
-import MatesMap, { MapLocation, MatesMapHandle } from "@components/matesMap";
+import MatesMap, { MapLocation, MatesMapRef } from "@components/matesMap";
 import { activitiesToFeatureCollection, generateActivities } from "utils/activity.utils";
 
 import matesMapStyle from "@assetsMap/styles/matesMapStyle.json";
@@ -22,7 +22,7 @@ const activities = generateActivities(
 );
 
 export default function Home() {
-  const mapRef = useRef<MatesMapHandle>(null);
+  const mapRef = useRef<MatesMapRef>(null);
   const t = useT();
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
 
@@ -32,17 +32,18 @@ export default function Home() {
 
   const onPressFeature = (feature: GeoJSON.Feature) => {
     const id = feature.properties?.id;
-    if (!id) return;
+    if (!id) 
+      return;
 
     const activity = activityById[id];
     if (!activity) 
       return;
 
     // Centrer la caméra sur l'activité
-    mapRef.current?.focusOn({
+    mapRef.current?.camera.focusOn({
       lat: activity.location.lat,
       lng: activity.location.lng,
-      minZoom: 13,
+      minZoom: 14,
       animationDuration: 500,
     });
 

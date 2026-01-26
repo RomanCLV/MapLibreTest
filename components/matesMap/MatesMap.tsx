@@ -1,3 +1,4 @@
+// components/matesMap/MatesMap.tsx
 import React, {
   useMemo,
   useRef,
@@ -14,7 +15,8 @@ import {
   Camera,
   OnPressEvent,
   CameraRef,
-  CameraStop
+  CameraStop,
+  MapViewRef
 } from "@maplibre/maplibre-react-native";
 import { CameraStops } from "node_modules/@maplibre/maplibre-react-native/lib/typescript/module/src/components/Camera";
 
@@ -36,17 +38,12 @@ import {
 
 const DEFAULT_ZOOM = 10;
 
-export interface MatesMapHandle {
-  // Méthodes custom
-  focusOn: (options: FocusOptions) => void;
-  resetCamera: () => void;
-
-  // Méthodes CameraRef wrappées
-  setCamera: (config: CameraStop | CameraStops) => void;
-  fitBounds: (ne: GeoJSON.Position, sw: GeoJSON.Position, paddingConfig?: number | number[], animationDuration?: number) => void;
-  flyTo: (coordinates: GeoJSON.Position, animationDuration?: number) => void;
-  moveTo: (coordinates: GeoJSON.Position, animationDuration?: number) => void;
-  zoomTo: (zoomLevel: number, animationDuration?: number) => void;
+export interface MatesMapRef {
+  map: MapViewRef;
+  camera: CameraRef & {
+    focusOn: (options: FocusOptions) => Promise<void>;
+    resetCamera: () => void;
+  };
 }
 
 export interface MatesMapProps<T = any> {
@@ -69,7 +66,7 @@ export interface MatesMapProps<T = any> {
   Component
 ========================= */
 
-const MatesMap = forwardRef<MatesMapHandle, MatesMapProps>(
+const MatesMap = forwardRef<MatesMapRef, MatesMapProps>(
   (
     {
       featureCollection,
@@ -81,13 +78,15 @@ const MatesMap = forwardRef<MatesMapHandle, MatesMapProps>(
       clusters,
       onPressFeature,
       onPressCluster,
-    },
+    }: MatesMapProps,
     ref
   ) => {
     const cameraRef = useRef<CameraRef>(null);
+    const mapViewRef = useRef<MapViewRef>(null);
 
     const geojson: FeatureCollection | undefined = useMemo(() => {
-      if (featureCollection) return featureCollection;
+      if (featureCollection)
+        return featureCollection;
 
       if (data.length && toFeatureCollection)
         return toFeatureCollection(data);
@@ -97,42 +96,35 @@ const MatesMap = forwardRef<MatesMapHandle, MatesMapProps>(
 
     // Exposition des méthodes via useImperativeHandle
     useImperativeHandle(ref, () => ({
-      // Méthodes custom
-      focusOn: ({ lat, lng, minZoom = 13, animationDuration = 1000 }) => {
-        cameraRef.current?.setCamera({
-          centerCoordinate: [lng, lat],
-          zoomLevel: minZoom,
-          animationDuration,
-        });
-      },
-      resetCamera: () => {
-        if (startupLocation) {
+      map: mapViewRef.current!,
+      camera: {
+        ...cameraRef.current!,
+        focusOn: async ({ lat, lng, minZoom = 13, animationDuration = 1000 }: FocusOptions) => {
+          // Récupérer le zoom actuel
+          const currentZoom = await mapViewRef.current?.getZoom();
+          
+          // On zoom seulement si le zoom actuel est inférieur au minZoom demandé
+          const targetZoom = currentZoom !== undefined ? Math.max(currentZoom, minZoom) : minZoom;
+          
           cameraRef.current?.setCamera({
-            centerCoordinate: [
-              startupLocation.location.lng,
-              startupLocation.location.lat,
-            ],
-            zoomLevel: startupLocation.zoom ?? DEFAULT_ZOOM,
-            animationDuration: 1000,
+            centerCoordinate: [lng, lat],
+            zoomLevel: targetZoom,
+            animationDuration,
           });
-        }
-      },
-      // Méthodes CameraRef wrappées
-      setCamera: (config) => {
-        cameraRef.current?.setCamera(config);
-      },
-      fitBounds: (ne, sw, paddingConfig, animationDuration) => {
-        cameraRef.current?.fitBounds(ne, sw, paddingConfig, animationDuration);
-      },
-      flyTo: (coordinates, animationDuration) => {
-        cameraRef.current?.flyTo(coordinates, animationDuration);
-      },
-      moveTo: (coordinates, animationDuration) => {
-        cameraRef.current?.moveTo(coordinates, animationDuration);
-      },
-      zoomTo: (zoomLevel, animationDuration) => {
-        cameraRef.current?.zoomTo(zoomLevel, animationDuration);
-      },
+        },
+        resetCamera: () => {
+          if (startupLocation) {
+            cameraRef.current?.setCamera({
+              centerCoordinate: [
+                startupLocation.location.lng,
+                startupLocation.location.lat,
+              ],
+              zoomLevel: startupLocation.zoom ?? DEFAULT_ZOOM,
+              animationDuration: 1000,
+            });
+          }
+        },
+      }
     }));
 
     const onShapePressed = (event: OnPressEvent) => {
@@ -149,7 +141,11 @@ const MatesMap = forwardRef<MatesMapHandle, MatesMapProps>(
     };
 
     return (
-      <MapView style={styles.map} mapStyle={mapStyle}>
+      <MapView 
+        ref={mapViewRef}
+        style={styles.map}
+        mapStyle={mapStyle}
+      >
         <Camera
           ref={cameraRef}
           defaultSettings={
